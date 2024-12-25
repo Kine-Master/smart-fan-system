@@ -1,0 +1,159 @@
+#include <SoftwareSerial.h>
+
+// Pin Definitions
+const int lm35Pin = A0;         // LM35 Temperature sensor pin
+const int trigPin = 9;          // HC-SR04 Trigger pin
+const int echoPin = 10;         // HC-SR04 Echo pin
+const int relayPin = 8;         // Relay pin for controlling the fan
+const int currentPin = A1;      // ACS712 Current Sensor pin
+
+// Constants
+const float voltageRef = 5.0;   // Reference voltage for ADC
+const float currentSensorOffset = 2.5;  // ACS712 midpoint voltage
+const float voltageToCurrent = 0.185;   // ACS712 conversion factor
+
+// Variables
+float temperature = 0.0;       // Temperature in Celsius
+float distance = 0.0;          // Distance in cm
+float currentReading = 0.0;    // Current in Amperes
+float energyConsumption = 0.0; // Energy consumption in kWh
+bool fanStatus = false;        // Fan status: ON/OFF
+
+// Thresholds (default values)
+float temperatureThreshold = 30.0;
+float distanceThreshold = 100.0;
+
+// Hysteresis margin (in degrees Celsius)
+float hysteresisMargin = 1.0;
+
+// Number of readings for averaging temperature
+const int numReadings = 10;
+
+void setup() {
+    Serial.begin(9600);
+
+    // Configure pin modes
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
+    pinMode(relayPin, OUTPUT);
+    pinMode(currentPin, INPUT);
+
+    // Initialize the fan as OFF
+    digitalWrite(relayPin, LOW);
+
+    // Allow sensors to stabilize
+    delay(2000); // Wait for 2 seconds to stabilize sensors
+
+    Serial.println("System Initialized");
+}
+
+void loop() {
+    // Read and parse serial input for user-defined thresholds
+    checkSerialInput();
+
+    // Read and process sensor data
+    temperature = readTemperature();
+    distance = getDistance();
+    currentReading = getCurrent();
+    energyConsumption = calculateEnergyConsumption(currentReading);
+
+    // Send formatted data to the Serial Monitor
+    sendFormattedData();
+
+    // Control fan based on temperature and distance thresholds with hysteresis
+    controlFan();
+
+    // Delay for 1 second before repeating the loop
+    delay(1000);
+}
+
+// Function to read and average temperature from LM35
+float readTemperature() {
+    int total = 0;
+    for (int i = 0; i < numReadings; i++) {
+        total += analogRead(lm35Pin);
+        delay(10);  // Small delay to stabilize between readings
+    }
+    int averageReading = total / numReadings;
+    return averageReading * (5.0 / 1024.0) * 100.0;  // LM35: 10mV per °C
+}
+
+// Function to measure distance using HC-SR04
+float getDistance() {
+    long duration;
+    
+    // Trigger the HC-SR04 sensor to send an ultrasonic pulse
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+
+    // Measure the pulse duration for distance calculation
+    duration = pulseIn(echoPin, HIGH);
+
+    // Convert duration to distance in cm
+    return (duration / 2.0) * 0.0344;
+}
+
+// Function to read current from ACS712 sensor
+float getCurrent() {
+    int currentSensorValue = analogRead(currentPin);
+    float currentVoltage = currentSensorValue * (5.0 / 1024.0);
+    return (currentVoltage - currentSensorOffset) / voltageToCurrent;
+}
+
+// Function to calculate energy consumption in kWh (simplified)
+float calculateEnergyConsumption(float current) {
+    return (current * 5.0 / 1000.0);  // Placeholder for real-time calculation
+}
+
+// Function to send formatted data to the serial port
+void sendFormattedData() {
+    Serial.print(temperature);  // Send the temperature (°C)
+    Serial.print(" ");
+    Serial.print(distance);     // Send the distance (cm)
+    Serial.print(" ");
+    Serial.print(fanStatus ? "true" : "false");  // Send the fan status (ON/OFF)
+    Serial.print(" ");
+    Serial.print(currentReading);  // Send the current (A)
+    Serial.print(" ");
+    Serial.println(energyConsumption);  // Send the energy consumption (kWh)
+}
+
+
+// Function to control the fan based on temperature, distance, and hysteresis
+void controlFan() {
+    if (temperature > (temperatureThreshold + hysteresisMargin) && distance < distanceThreshold) {
+        digitalWrite(relayPin, HIGH);  // Turn on the fan
+        fanStatus = true;
+    } else if (temperature < (temperatureThreshold - hysteresisMargin)) {
+        digitalWrite(relayPin, LOW);  // Turn off the fan
+        fanStatus = false;
+    }
+}
+
+// Function to check and process serial input for updating thresholds
+void checkSerialInput() {
+    if (Serial.available()) {
+        String input = Serial.readStringUntil('\n');  // Read input until newline
+        input.trim();  // Remove leading/trailing spaces
+
+        // Parse and update the temperature threshold
+        if (input.startsWith("SET_TEMP:")) {
+            temperatureThreshold = input.substring(9).toFloat();
+            Serial.print("Temperature Threshold Updated: ");
+            Serial.println(temperatureThreshold);
+        }
+        // Parse and update the distance threshold
+        else if (input.startsWith("SET_DIST:")) {
+            distanceThreshold = input.substring(9).toFloat();
+            Serial.print("Distance Threshold Updated: ");
+            Serial.println(distanceThreshold);
+        }
+        // Handle invalid commands
+        else {
+            Serial.println("Invalid Command");
+        }
+    }
+}

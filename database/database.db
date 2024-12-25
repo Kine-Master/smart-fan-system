@@ -1,0 +1,12 @@
+CREATE DATABASE fan_system;
+USE fan_system;
+
+CREATE TABLE fan_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    temperature FLOAT NOT NULL,
+    distance FLOAT NOT NULL,
+    status BOOLEAN NOT NULL,
+    current FLOAT NOT NULL,
+    energy FLOAT NOT NULL,
+    timestamp DATETIME NOT NULL
+);

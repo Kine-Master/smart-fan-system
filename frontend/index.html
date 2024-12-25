@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Fan System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Smart Fan System</h1>
+    </header>
+
+    <div id="device-status">
+        <p>Device Status: <span id="status-text">Connected</span></p>
+    </div>
+
+    <section id="status">
+        <h2>Fan Status</h2>
+        <p id="temperature">Temperature: -- °C</p>
+        <p id="distance">Distance: -- cm</p>
+        <p id="fan-status">Fan Status: OFF</p>
+        <p id="current-reading">Current Consumption: -- A</p>
+        <p id="electric-usage">Electric Usage: -- kWh</p>
+    </section>
+
+    <section id="controls">
+        <h2>Change Thresholds</h2>
+        <label for="temp-threshold">Temperature Threshold (°C):</label>
+        <input type="number" id="temp-threshold" min="0" max="100" value="30">
+        <br>
+        <label for="proximity-threshold">Proximity Threshold (cm):</label>
+        <input type="number" id="proximity-threshold" min="0" max="300" value="100">
+        <br>
+        <button id="update-thresholds">Update Thresholds</button>
+    </section>
+
+    <section id="history">
+        <h2>Fan Status History</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Temperature (°C)</th>
+                <th>Distance (cm)</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+            </tr>
+            </thead>
+            <tbody id="history-data">
+                <!-- Populated dynamically -->
+            </tbody>
+        </table>
+    </section>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script> <!-- Ensure correct Socket.IO path -->
+    <script src="script.js"></script>
+</body>
+</html>
