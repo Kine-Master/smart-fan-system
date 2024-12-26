@@ -75,9 +75,9 @@ CREATE TABLE fan_history (
 );
 Frontend Interface:
 
-Place the index.html, style.css, and script.js files in the frontend directory.
-Make sure to run the Node.js server (server.js) on the backend and open index.html in a browser.
-How It Works
+Make sure to run the Node.js server by entering the command "node server.js" in git bash after navigating through the project folder and inside the backend directory and open index.html in a browser.
+
+How It Works:
 Temperature and Distance Sensors: The LM35 and HC-SR04 sensors continuously monitor the temperature and the proximity of objects. The data is sent to the Arduino, which processes it and decides whether to activate the fan based on the predefined thresholds.
 
 Fan Control: The fan turns on if the temperature exceeds the threshold and if an object is detected within the proximity threshold. The relay module is used to control the fan.

@@ -11,26 +11,43 @@ socket.on('sensorData', (data) => {
     document.getElementById('fan-status').innerText = `Fan Status: ${data.fanStatus ? 'ON' : 'OFF'}`;
     document.getElementById('current-reading').innerText = `Current Consumption: ${data.current} A`;
     document.getElementById('electric-usage').innerText = `Electric Usage: ${data.energy} kWh`;
-
-    // Update fan status in history section
-    const historyData = document.getElementById('history-data');
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td>--</td>
-        <td>${data.temperature}</td>
-        <td>${data.distance}</td>
-        <td>${data.fanStatus ? 'ON' : 'OFF'}</td>
-        <td>${new Date().toLocaleString()}</td>
-    `;
-    historyData.appendChild(newRow);
 });
+
+// Fetch and display fan history
+function loadFanHistory() {
+    fetch('http://localhost:3000/api/fan-history') // Replace with your backend URL
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                const historyData = document.getElementById('history-data');
+                historyData.innerHTML = ''; // Clear existing data
+
+                data.data.forEach((row) => {
+                    const newRow = document.createElement('tr');
+                    newRow.innerHTML = `
+                        <td>${row.id}</td>
+                        <td>${row.temperature}</td>
+                        <td>${row.distance}</td>
+                        <td>${row.status ? 'ON' : 'OFF'}</td>
+                        <td>${new Date(row.timestamp).toLocaleString()}</td>
+                    `;
+                    historyData.appendChild(newRow);
+                });
+            } else {
+                console.error('Failed to fetch history:', data.error);
+            }
+        })
+        .catch((err) => {
+            console.error('Error fetching history:', err);
+        });
+}
 
 // Update thresholds
 document.getElementById('update-thresholds').addEventListener('click', () => {
     const tempThreshold = document.getElementById('temp-threshold').value;
     const proximityThreshold = document.getElementById('proximity-threshold').value;
 
-    fetch('http://localhost:3000/update-thresholds', { // Adjust the fetch URL to backend URL
+    fetch('http://localhost:3000/update-thresholds', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ temperature: parseFloat(tempThreshold), distance: parseFloat(proximityThreshold) }),
@@ -40,3 +57,9 @@ document.getElementById('update-thresholds').addEventListener('click', () => {
         alert(data.message);
     });
 });
+
+// Load history when the page loads
+window.onload = () => {
+    loadFanHistory();
+    setInterval(loadFanHistory, 30000); // Refresh history every 30 seconds
+};

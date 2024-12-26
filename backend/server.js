@@ -16,8 +16,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: "http://127.0.0.1:5500",  // Update this with your frontend URL
-        methods: ["GET", "POST", "OPTIONS"], // Include OPTIONS in allowed methods
-        allowedHeaders: ["Content-Type"],  // Allow Content-Type header
+        methods: ["GET", "POST", "OPTIONS"],
+        allowedHeaders: ["Content-Type"],
     }
 });
 
@@ -25,12 +25,11 @@ const io = new Server(server, {
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// CORS headers for all routes to handle preflight and actual requests
+// CORS headers
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', 'http://127.0.0.1:5500');  // Allow your frontend URL
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');  // Allowed methods
-    res.header('Access-Control-Allow-Headers', 'Content-Type');  // Allowed headers
-    // Allow preflight request (OPTIONS) to proceed
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
@@ -85,12 +84,31 @@ parser.on('data', (data) => {
                 [fanData.temperature, fanData.distance, fanData.fanStatus, fanData.current, fanData.energy, fanData.timestamp],
                 (err) => {
                     if (err) console.error('Database insert error:', err);
+
+                    // Maintain a limit of 200 rows in the database
+                    db.query('DELETE FROM fan_history WHERE id NOT IN (SELECT id FROM (SELECT id FROM fan_history ORDER BY id DESC LIMIT 200) sub)', 
+                        (err) => {
+                            if (err) console.error('Database delete error:', err);
+                        }
+                    );
                 }
             );
         }
     } catch (err) {
         console.error('Error parsing serial data:', err);
     }
+});
+
+// API to Get Fan History
+app.get('/api/fan-history', (req, res) => {
+    const query = 'SELECT id, temperature, distance, status, timestamp FROM fan_history ORDER BY id DESC';
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching fan history:', err);
+            return res.status(500).json({ success: false, error: 'Failed to fetch history' });
+        }
+        res.json({ success: true, data: results });
+    });
 });
 
 // API to Update Thresholds
