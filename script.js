@@ -58,6 +58,12 @@ document.getElementById('update-thresholds').addEventListener('click', () => {
     });
 });
 
+
+// Add event listener for manual refresh button
+document.getElementById('refresh-history').addEventListener('click', () => {
+    loadFanHistory();
+});
+
 // Load history when the page loads
 window.onload = () => {
     loadFanHistory();
